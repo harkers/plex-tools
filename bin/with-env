@@ -1,0 +1,13 @@
+#!/bin/sh
+# Wrapper: sources ~/.config/plex-tools.env then exec's the given command.
+# Use in cron to avoid sprinkling secrets across crontab lines.
+#
+# Example crontab:
+#   */5 * * * * /home/stu/projects/plex-tools/bin/with-env /home/stu/projects/plex-tools/bin/radarr-import-incremental-scan.py >> /var/log/radarr-plex-incremental.log 2>&1
+set -e
+ENV_FILE="${PLEX_TOOLS_ENV:-$HOME/.config/plex-tools.env}"
+[ -r "$ENV_FILE" ] || { echo "missing $ENV_FILE — see .env.example" >&2; exit 1; }
+set -a
+. "$ENV_FILE"
+set +a
+exec "$@"
