@@ -1,0 +1,220 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/harkers/repo-standards/schemas/verification-evidence.schema.json",
+  "title": "Verification Evidence Packet",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "repository",
+    "commit",
+    "generated_at",
+    "profile",
+    "controls",
+    "tracked_findings",
+    "state"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+$"
+    },
+    "repository": {
+      "type": "string",
+      "pattern": "^[^/\\s]+/[^/\\s]+$"
+    },
+    "commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{7,40}$"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "profile": {
+      "type": "string"
+    },
+    "build": {
+      "type": ["string", "null"]
+    },
+    "controls": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["control_id", "status"],
+        "properties": {
+          "control_id": {
+            "type": "string",
+            "pattern": "^RS-(SEC|BUILD)-[0-9]{3}$"
+          },
+          "requirement": {
+            "enum": ["REQUIRED", "OPTIONAL", "NOT_APPLICABLE"]
+          },
+          "tool": {
+            "type": ["string", "null"]
+          },
+          "tool_version": {
+            "type": ["string", "null"]
+          },
+          "command": {
+            "type": ["string", "null"]
+          },
+          "started_at": {
+            "type": ["string", "null"],
+            "format": "date-time"
+          },
+          "duration_seconds": {
+            "type": ["number", "null"],
+            "minimum": 0
+          },
+          "status": {
+            "enum": ["PASS", "WARN", "FAIL", "BLOCKED", "NOT_APPLICABLE"]
+          },
+          "missing_control": {
+            "type": ["string", "null"]
+          },
+          "missing_tool": {
+            "type": ["string", "null"]
+          },
+          "findings_by_severity": {
+            "type": "object",
+            "properties": {
+              "critical": { "type": "integer", "minimum": 0 },
+              "high": { "type": "integer", "minimum": 0 },
+              "medium": { "type": "integer", "minimum": 0 },
+              "low": { "type": "integer", "minimum": 0 }
+            },
+            "additionalProperties": false
+          },
+          "findings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["fingerprint", "severity", "status"],
+              "properties": {
+                "fingerprint": {
+                  "type": "string",
+                  "pattern": "^rsf1:[0-9a-f]{32}$"
+                },
+                "severity": {
+                  "enum": ["critical", "high", "medium", "low", "info"]
+                },
+                "id": {
+                  "type": ["string", "null"]
+                },
+                "component": {
+                  "type": ["string", "null"]
+                },
+                "fixed_version": {
+                  "type": ["string", "null"]
+                },
+                "issue": {
+                  "type": ["string", "null"],
+                  "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#[0-9]+$"
+                },
+                "status": {
+                  "enum": ["OPEN", "REOPENED", "RESOLVED", "WAIVED", "NOT_APPLICABLE"]
+                },
+                "exception": {
+                  "$ref": "#/$defs/exception"
+                }
+              }
+            }
+          },
+          "artifacts": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["path", "sha256"],
+              "properties": {
+                "path": { "type": "string" },
+                "sha256": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "retention": {
+                  "enum": ["ci-artifact", "release-asset", "repository"]
+                }
+              }
+            }
+          },
+          "exception": {
+            "$ref": "#/$defs/exception"
+          },
+          "evidence_links": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "notes": {
+            "type": ["string", "null"]
+          }
+        }
+      }
+    },
+    "tracked_findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["fingerprint", "severity", "status"],
+        "properties": {
+          "fingerprint": {
+            "type": "string",
+            "pattern": "^rsf1:[0-9a-f]{32}$"
+          },
+          "severity": {
+            "enum": ["critical", "high", "medium", "low", "info"]
+          },
+          "id": {
+            "type": ["string", "null"]
+          },
+          "component": {
+            "type": ["string", "null"]
+          },
+          "fixed_version": {
+            "type": ["string", "null"]
+          },
+          "issue": {
+            "type": ["string", "null"],
+            "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#[0-9]+$"
+          },
+          "status": {
+            "enum": ["OPEN", "REOPENED", "RESOLVED", "WAIVED", "NOT_APPLICABLE"]
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "required": ["severity"],
+              "properties": {
+                "severity": { "enum": ["critical", "high"] }
+              }
+            },
+            "then": {
+              "required": ["issue"],
+              "properties": {
+                "issue": { "type": "string" }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "state": {
+      "enum": ["PASS", "FAIL", "BLOCKED_TOOLING", "BLOCKED_FINDING_TRACKING"]
+    }
+  },
+  "$defs": {
+    "exception": {
+      "type": "object",
+      "required": ["id", "justification", "approved_by", "expires"],
+      "properties": {
+        "id": { "type": "string" },
+        "justification": { "type": "string" },
+        "approved_by": { "type": "string" },
+        "expires": {
+          "type": ["string", "null"],
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+        }
+      }
+    }
+  }
+}
